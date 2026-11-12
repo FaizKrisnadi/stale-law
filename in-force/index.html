@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231f4939'/%3E%3Cpath d='M20 6 12 26' stroke='%23f7f6ef' stroke-width='2.5'/%3E%3C/svg%3E">
+<title>In Force — Indonesian statute currency</title>
+<meta name="description" content="A small, curated research prototype comparing selected instruments on two dates. Verify against official sources before relying on any result.">
+<style>
+  :root{
+    --paper:#FAF8F3; --surface:#FFFFFF; --rail:#F5F2EA;
+    --ink:#191510; --text:#3B362D; --muted:#7B7465; --faint:#A39B8B;
+    --line:#EAE4D8; --line-soft:#F2EDE4;
+    --ok:#356C4E; --warn:#8E6A24; --bad:#9A3E2C;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  .sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--text);font:14.5px/1.62 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:var(--bad);text-decoration:none}
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---------- header ---------- */
+  .top{height:56px;display:flex;align-items:center;justify-content:space-between;
+       padding:0 24px;position:sticky;top:0;z-index:20;background:var(--paper)}
+  .brand{display:flex;align-items:center;gap:10px;font:600 12.5px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase}
+  .brand i{width:6px;height:6px;background:var(--bad);display:block}
+  .top-meta{display:flex;align-items:center;gap:18px;font:11px/1 var(--sans);
+            letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+  @media (max-width:700px){ .top-meta .hide-s{display:none} .top{height:48px;padding:0 16px} }
+
+  /* ---------- app ---------- */
+  .app{display:grid;grid-template-columns:296px minmax(0,1fr);align-items:start;
+       border-top:1px solid var(--line)}
+  @media (max-width:900px){ .app{grid-template-columns:1fr} }
+
+  /* ---------- rail ---------- */
+  .rail{background:var(--rail);border-right:1px solid var(--line);
+        position:sticky;top:56px;height:calc(100vh - 56px);overflow:auto}
+  @media (max-width:900px){ .rail{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)} }
+  .search-wrap{padding:16px 14px 12px;position:sticky;top:0;background:var(--rail);z-index:5}
+  .search{display:flex;align-items:center;gap:8px;background:var(--surface);
+          border:1px solid var(--line);padding:0 10px}
+  .search:focus-within{border-color:#CFC6B4}
+  .search input{flex:1;min-width:0;border:0;background:none;outline:0;padding:10px 0;
+                font:12.5px var(--mono);color:var(--ink)}
+  .search input::placeholder{color:#B0A899}
+  .search kbd{font:10px var(--sans);color:var(--faint)}
+  .filters{display:flex;gap:16px;padding:0 14px 10px;background:var(--rail)}
+  .filters button{font:10.5px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;
+                  color:var(--faint);padding:2px 0}
+  .filters button:hover{color:var(--muted)}
+  .filters button[aria-pressed="true"]{color:var(--ink)}
+
+  .list{list-style:none;margin:0;padding:2px 8px 0}
+  .row{display:grid;grid-template-columns:1fr auto;gap:1px 10px;padding:9px 8px;
+       cursor:pointer;border-radius:2px}
+  .row + .row{margin-top:1px}
+  .row:hover{background:#EFEBE0}
+  .row[aria-selected="true"]{background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+  .row:focus-visible{outline:2px solid var(--bad);outline-offset:1px}
+  .r-ref{font:500 12px/1.4 var(--mono);letter-spacing:.01em;color:var(--ink)}
+  .r-title{font-size:12.5px;line-height:1.35;color:var(--muted);grid-column:1}
+  .r-status{grid-column:2;grid-row:1 / span 2;align-self:center;
+            font:9.5px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;text-align:right}
+  .s-ok{color:var(--ok)} .s-warn{color:var(--warn)} .s-bad{color:var(--bad)}
+  .r-hit{grid-column:1 / -1;font:10.5px/1.4 var(--mono);color:var(--faint);margin-top:3px}
+  .r-hit b{color:var(--warn);font-weight:500}
+  .rail-empty{padding:18px 10px;font-size:12.5px;line-height:1.6;color:var(--muted)}
+  .rail-foot{padding:14px;font:10.5px/1.6 var(--sans);letter-spacing:.05em;
+             text-transform:uppercase;color:var(--faint)}
+
+  /* ---------- panel ---------- */
+  .panel{padding:34px 48px 80px;max-width:800px}
+  @media (max-width:900px){ .panel{padding:26px 22px 56px;max-width:none} }
+
+  .eyebrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+           font:10.5px/1 var(--sans);letter-spacing:.09em;text-transform:uppercase}
+  .verdict{font-weight:600}
+  .eyebrow .verdict{display:inline-block;padding:6px 10px;border:1px solid currentColor;margin-right:6px}
+  .top .home{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:2px}
+  .top .home:hover{border-color:var(--ink)}
+  .asof{color:var(--faint)}
+  .p-title{font:600 31px/1.1 var(--serif);letter-spacing:-.012em;color:var(--ink);margin:10px 0 6px}
+  @media (max-width:900px){ .p-title{font-size:26px} }
+  .p-sub{font:11.5px/1.5 var(--mono);color:var(--muted)}
+
+  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:22px 0 0}
+  .seg{display:inline-flex;background:#F0ECE2}
+  .seg button{font:12px/1 var(--sans);letter-spacing:.03em;padding:9px 14px;color:var(--muted);cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+  .datebox{font:10.5px var(--sans);border:1px solid var(--line);background:var(--surface);
+           color:var(--muted);padding:6px 8px}
+  .ghost{font:10.5px/1 var(--sans);letter-spacing:.05em;border:1px solid var(--line);
+         padding:7px 10px;color:var(--muted);border-radius:2px}
+  .ghost:hover{border-color:#CFC6B4;color:var(--ink)}
+  .ghost[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 24px;margin:26px 0 0}
+  @media (max-width:700px){ .facts{grid-template-columns:1fr 1fr;gap:18px 24px} }
+  .fact{padding:0}
+  .fact dt{font:10px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+  .fact dd{margin:5px 0 0;font-size:13.5px;line-height:1.4;color:var(--ink)}
+  .fact dd .v{display:block}
+  .fact dd .d{display:block;margin-top:2px;font:10.5px var(--mono);color:var(--faint)}
+
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:24px 0 0;
+           border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  @media (max-width:700px){ .compare{grid-template-columns:1fr} }
+  .compare > div{padding:16px 20px 16px 0}
+  .compare > div + div{padding-left:20px;border-left:1px solid var(--line)}
+  @media (max-width:700px){ .compare > div + div{padding-left:0;border-left:0;border-top:1px solid var(--line)} }
+  .c-date{font:10px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+  .c-verdict{display:block;margin:8px 0 7px;font:600 10.5px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase}
+  .compare p{margin:0;font-size:12.5px;line-height:1.6;color:var(--muted)}
+
+  h2.part{font:10px/1 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--faint);
+          margin:34px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+  .p-ref{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+  .p-ref .k{font:500 12.5px/1 var(--mono);color:var(--ink)}
+  .tag{font:9.5px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:2px}
+  .tag.survived{color:var(--ok);background:#EAF0EA}
+  .tag.rewritten{color:var(--warn);background:#F4EDDD}
+  .tag.gone{color:var(--bad);background:#F5E8E4}
+  blockquote{margin:0 0 12px;padding:1px 0 1px 16px;border-left:1px solid #DED6C6;
+             font:15px/1.65 var(--serif);color:var(--text);max-width:62ch}
+  blockquote p{margin:0 0 10px}
+  blockquote p:last-child{margin:0}
+  .gloss{max-width:64ch;margin:0;font-size:13.5px;line-height:1.65;color:var(--muted)}
+  .note{margin:10px 0 0;font-size:12.5px;line-height:1.6;color:var(--faint);max-width:64ch}
+
+  table.chain{width:100%;border-collapse:collapse;font-size:13px}
+  table.chain th{font:10px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--faint);
+                 text-align:left;padding:0 0 9px;font-weight:500}
+  table.chain td{padding:11px 0 12px;border-top:1px solid var(--line-soft);vertical-align:top;color:var(--text)}
+  table.chain td.d{font:10.5px/1.6 var(--mono);color:var(--muted);white-space:nowrap;width:104px}
+  table.chain tr.amend td.d{color:var(--warn)}
+  table.chain td p{margin:0;line-height:1.55}
+  table.chain .inst{font-weight:600;color:var(--ink)}
+  table.chain .loc{display:block;margin-top:4px;font:10.5px/1.5 var(--mono);color:var(--faint)}
+
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chips button{font:11px/1 var(--sans);border:1px solid var(--line);padding:6px 9px;
+                color:var(--muted);border-radius:2px;background:var(--surface)}
+  .chips button:hover{border-color:#CFC6B4;color:var(--ink)}
+  .chips button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  .prov{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);max-width:72ch;
+        font:11.5px/1.75 var(--sans);color:var(--faint)}
+  .prov b{color:var(--muted);font-weight:500}
+  .prov .row2{margin-top:6px}
+  .prov a{color:var(--bad)}
+
+  /* ---------- about ---------- */
+  .about{border-top:1px solid var(--line);background:var(--paper)}
+  .about .in{max-width:1060px;margin:0 auto;padding:56px 24px 24px;display:grid;
+             grid-template-columns:1fr 1fr;gap:40px 64px}
+  @media (max-width:800px){ .about .in{grid-template-columns:1fr;gap:32px;padding:40px 22px 20px} }
+  .about h3{font:10.5px/1 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:0 0 14px}
+  .about p{margin:0 0 12px;font-size:13.5px;line-height:1.7;color:var(--muted);max-width:58ch}
+  .about ul{margin:0;padding:0;list-style:none}
+  .about li{position:relative;padding-left:15px;margin-bottom:10px;font-size:13.5px;line-height:1.65;color:var(--muted);max-width:58ch}
+  .about li::before{content:"";position:absolute;left:0;top:10px;width:5px;height:1px;background:#CFC6B4}
+  .foot{padding:28px 24px 44px;display:flex;justify-content:space-between;
+        gap:16px;flex-wrap:wrap;font:10.5px/1.7 var(--sans);letter-spacing:.05em;
+        text-transform:uppercase;color:var(--faint);max-width:1060px;margin:0 auto}
+  :focus-visible{outline:2px solid var(--bad);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><i></i>In Force</div>
+  <div class="top-meta">
+    <span id="counts" class="num"></span>
+    <span class="hide-s">Checked 9 Nov 2026</span>
+    <a class="home" href="../index.html">Stale Law ↗</a>
+  </div>
+</header>
+
+<main class="app">
+  <aside class="rail">
+    <div class="search-wrap">
+      <div class="search">
+        <input id="q" type="text" placeholder="UU 25/2007 Pasal 7" spellcheck="false"
+               aria-label="Search instruments and provisions" autocomplete="off">
+        <kbd>/</kbd>
+      </div>
+    </div>
+    <div class="filters" id="filters" role="group" aria-label="Filter">
+      <button data-f="all" aria-pressed="true">All</button>
+      <button data-f="amended" aria-pressed="false">Amended</button>
+      <button data-f="clean" aria-pressed="false">Unamended</button>
+      <button data-f="ended" aria-pressed="false">Ended</button>
+    </div>
+    <ul class="list" id="list" role="listbox" aria-label="Instruments"></ul>
+    <div class="rail-foot" id="railfoot"></div>
+  </aside>
+
+  <section class="panel" id="panel"></section>
+</main>
+
+<section class="about">
+  <div class="in">
+    <div>
+      <h3>What this does</h3>
+      <p>A statute can remain in force after a provision changes. This curated prototype records selected instruments and provisions from a research pilot.</p>
+      <p>Search by citation or words in a recorded provision. Compare the two pilot dates and follow the source links. The chain is a research note, not a complete historical consolidation.</p>
+      <p>The index is a fixed snapshot, last checked 9 November 2026. It cannot establish law after that date or reconstruct article wording for an earlier date.</p>
+      <p>Every row carries the document it was checked against. Where the index has not read something, it says so.</p>
+    </div>
+    <div>
+      <h3>What it will not do</h3>
+      <ul>
+        <li>It holds nine instruments and seventeen provisions. It will not guess about a tenth.</li>
+        <li>It reads numbers, years and article references. It does not understand a sentence.</li>
+        <li>Some treaty claims rely on secondary sources, and the entry into force date for ACFTA is unresolved in the register.</li>
+        <li>It is not legal advice. For a filing, open the document named in the provenance block.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot">
+    <span>Built with AutoClaw · Round 3 · Legal Practice</span>
+    <span>Sources retrieved 9 Nov 2026 · BPK · JDIH Kemenkeu</span>
+  </div>
+</section>
+
+<script>
+/* ============================================================
+   DATA — nine instruments, seventeen provisions.
+   A curated snapshot assembled on 9 November 2026. Some treaty
+   claims rely on secondary sources; see each entry and its provenance.
+   ============================================================ */
+const INDEX = [
+  {
+    id:"uu-25-2007", ref:"UU 25/2007", kind:"statute", subject:"Investment",
+    title:"Investment law", titleId:"Undang-Undang Penanaman Modal",
+    since:"2007-04-26", sinceLabel:"26 Apr 2007",
+    summary:"The investment statute. Its amendments rewrote entry and licensing; the protection clauses were left alone.",
+    events:[
+      {date:"26 Apr 2007", what:"Replaced the 1967 foreign investment law and the 1968 domestic investment law."},
+      {date:"2 Nov 2020", label:"UU 11/2020", what:"Cipta Kerja rewrote the licensing architecture.", amend:true},
+      {date:"2022", label:"Perppu 2/2022", what:"Replaced the Cipta Kerja text after the Constitutional Court ruling.", amend:true},
+      {date:"31 Mar 2023", label:"UU 6/2023", what:"Lampiran, Pasal 77 amended Articles 2, 12, 13, 18 and 25. The cluster then closes and moves to banking.", amend:true, loc:"UU 6/2023, Lampiran, Pasal 77 angka 1–5"}
+    ],
+    units:[
+      {ref:"Pasal 7", short:"7", state:"survived", label:"Untouched since 2007",
+       text:["(1) Pemerintah tidak akan melakukan tindakan nasionalisasi atau pengambilalihan hak kepemilikan penanam modal, kecuali dengan undang-undang.",
+             "(2) Dalam hal Pemerintah melakukan tindakan nasionalisasi atau pengambilalihan hak kepemilikan sebagaimana dimaksud pada ayat (1), Pemerintah akan memberikan kompensasi yang jumlahnya ditetapkan berdasarkan harga pasar.",
+             "(3) Jika diantara kedua belah pihak tidak tercapai kesepakatan tentang kompensasi atau ganti rugi sebagaimana dimaksud pada ayat (2), penyelesaiannya dilakukan melalui arbitrase."],
+       gloss:"Nationalisation only by statute, compensation at market price, and arbitration if the parties cannot agree on the amount.",
+       note:"UU 6/2023 did not name this article, so the 2007 text is still the live text."},
+      {ref:"Pasal 32", short:"32", state:"survived", label:"Untouched since 2007",
+       text:["(1) Dalam hal terjadi sengketa di bidang penanaman modal antara Pemerintah dengan penanam modal, para pihak terlebih dahulu menyelesaikan sengketa tersebut melalui musyawarah dan mufakat.",
+             "(2) Dalam hal penyelesaian sengketa sebagaimana dimaksud pada ayat (1) tidak tercapai, penyelesaian sengketa tersebut dapat dilakukan melalui arbitrase atau alternatif penyelesaian sengketa atau pengadilan sesuai dengan ketentuan peraturan perundang-undangan.",
+             "(3) Dalam hal terjadi sengketa di bidang penanaman modal antara Pemerintah dengan penanam modal dalam negeri, para pihak dapat menyelesaikan sengketa tersebut melalui arbitrase berdasarkan kesepakatan para pihak, dan jika penyelesaian sengketa melalui arbitrase tidak disepakati, penyelesaian sengketa tersebut akan dilakukan di pengadilan.",
+             "(4) Dalam hal terjadi sengketa di bidang penanaman modal antara Pemerintah dengan penanam modal asing, para pihak akan menyelesaikan sengketa tersebut melalui arbitrase internasional yang harus disepakati oleh para pihak."],
+       gloss:"Deliberate first. Failing that, arbitration, ADR or a court. For a foreign investor: international arbitration which the parties must agree to.",
+       note:"The last four words of ayat (4) are the point. The statute supplies a forum, not consent."},
+      {ref:"Pasal 2", short:"2", state:"rewritten", label:"Rewritten 2023",
+       text:["Ketentuan dalam Undang-Undang ini berlaku dan menjadi acuan utama bagi Penanaman Modal di semua sektor di wilayah Negara Kesatuan Republik Indonesia."],
+       gloss:"Scope: the law applies to all sectors and is the primary reference.", note:"UU 6/2023, Pasal 77 angka 1."},
+      {ref:"Pasal 12", short:"12", state:"rewritten", label:"Rewritten 2023",
+       text:["(1) Semua bidang usaha terbuka bagi kegiatan Penanaman Modal, kecuali bidang usaha yang dinyatakan tertutup untuk Penanaman Modal atau kegiatan yang hanya dapat dilakukan oleh Pemerintah Pusat."],
+       gloss:"The closed list is restated, and the President sets it by regulation.",
+       note:"UU 6/2023, Pasal 77 angka 2. The article also lists six closed fields; only the first paragraph is pinned here."},
+      {ref:"Pasal 13", short:"13", state:"rewritten", label:"Rewritten 2023",
+       gloss:"Partnership and empowerment duties toward cooperatives and small business.", note:"UU 6/2023, Pasal 77 angka 3. Not pinned."},
+      {ref:"Pasal 18", short:"18", state:"rewritten", label:"Rewritten 2023",
+       gloss:"Investment facilities and the criteria for granting them.", note:"UU 6/2023, Pasal 77 angka 4. Not pinned."},
+      {ref:"Pasal 25", short:"25", state:"rewritten", label:"Rewritten 2023",
+       gloss:"Company establishment and business licensing.", note:"UU 6/2023, Pasal 77 angka 5. Not pinned."}
+    ],
+    source:{label:"JDIH Kementerian Keuangan, full text of UU 25/2007",
+      url:"https://jdih.kemenkeu.go.id/api/download/fulltext/2007/25TAHUN2007UU.htm",
+      notes:"BPK records the instrument as in force, amended by UU 11/2020, Perppu 2/2022 and UU 6/2023. The amending cluster was read in UU 6/2023's lampiran, not in a consolidation. The 26 April 2007 date is from the statute text (LN 2007 No. 67); BPK's metadata field shows 26 April 2008. UU 11/2020's date of 2 November 2020 is from its BPK record."}
+  },
+  {
+    id:"uu-6-2023", ref:"UU 6/2023", kind:"statute", subject:"Omnibus",
+    title:"Cipta Kerja", titleId:"Undang-Undang Cipta Kerja",
+    since:"2023-03-31", sinceLabel:"31 Mar 2023",
+    summary:"The omnibus that replaced the 2020 job-creation law after the Constitutional Court ruling.",
+    events:[{date:"31 Mar 2023", what:"Ratified Perppu 2/2022, which had replaced UU 11/2020."}],
+    units:[
+      {ref:"Pasal 77", short:"77", state:"survived", label:"The investment cluster",
+       gloss:"Amends the investment law in five numbered items: Articles 2, 12, 13, 18 and 25. Item five ends and the text moves to banking.",
+       note:"This amendment cluster does not amend Articles 7 or 32; check the complete legislative history separately."}
+    ],
+    source:{label:"BPK, UU 6/2023 with lampiran (1,126 pages)",
+      url:"https://peraturan.bpk.go.id/Details/246523/uu-no-6-tahun-2023",
+      notes:"The lampiran has a text layer; Pasal 77 was read directly. Its digits render with letter O substitutions in places, a quirk of the file."}
+  },
+  {
+    id:"uu-5-1986", ref:"UU 5/1986", kind:"statute", subject:"Administrative courts",
+    title:"Administrative court procedure", titleId:"Peradilan Tata Usaha Negara",
+    since:"1986-12-29", sinceLabel:"1986",
+    summary:"Article 55 states a 90-day period; procedural rules may affect the applicable trigger.",
+    events:[
+      {date:"1986", what:"Created the state administrative court and its filing rules."},
+      {date:"2004", label:"UU 9/2004", what:"Rewrote 33 articles of this statute.", amend:true, loc:"2, 4, 6, 7, 12–22, 26, 28–38, 42, 44–46, 53, 116"},
+      {date:"2009", label:"UU 51/2009", what:"Rewrote 18 articles of this statute.", amend:true, loc:"1, 9A, 14, 20, 21, 25, 28, 30, 32–36, 39B, 42, 43, 116, 135"}
+    ],
+    units:[
+      {ref:"Pasal 55", short:"55", state:"survived", label:"Never amended",
+       text:["Gugatan dapat diajukan hanya dalam tenggang waktu sembilan puluh hari terhitung sejak saat diterimanya atau diumumkannya Keputusan Badan atau Pejabat Tata Usaha Negara."],
+       gloss:"Article 55 states a 90-day period from receipt or announcement of the decision. PERMA 6/2018 Article 5 addresses timing after administrative remedies and for certain third parties; determine the trigger from the facts.",
+       note:"Neither amending statute lists Article 55. This is not a complete deadline calculator; check PERMA 6/2018 and the procedural facts."}
+    ],
+    source:{label:"BPK, UU 5/1986 and both amending statutes",
+      url:"https://peraturan.bpk.go.id/Details/46914/uu-no-5-tahun-1986",
+      notes:"Article 55 was read in the 1986 text; both amending instruments were checked article by article."}
+  },
+  {
+    id:"uu-9-2004", ref:"UU 9/2004", kind:"statute", subject:"Administrative courts",
+    title:"First amendment to the court law", titleId:"Perubahan atas UU 5/1986",
+    since:"2004-01-01", sinceLabel:"2004",
+    summary:"Amends 33 articles of the 1986 court law and leaves Article 55 alone.",
+    events:[{date:"2004", what:"Rewrote 33 articles of UU 5/1986.", loc:"2, 4, 6, 7, 12–22, 26, 28–38, 42, 44–46, 53, 116"}],
+    units:[],
+    source:{label:"JDIH Kementerian Keuangan, full text", url:"https://jdih.kemenkeu.go.id/api/download/fulltext/2004/9TAHUN2004UU.htm",
+      notes:"The amending list was read from the statute itself."}
+  },
+  {
+    id:"uu-51-2009", ref:"UU 51/2009", kind:"statute", subject:"Administrative courts",
+    title:"Second amendment to the court law", titleId:"Perubahan kedua atas UU 5/1986",
+    since:"2009-10-29", sinceLabel:"2009",
+    summary:"Amends 18 articles of the 1986 court law and leaves Article 55 alone.",
+    events:[{date:"2009", what:"Rewrote 18 articles of UU 5/1986.", loc:"1, 9A, 14, 20, 21, 25, 28, 30, 32–36, 39B, 42, 43, 116, 135"}],
+    units:[],
+    source:{label:"BPK, UU 51/2009", url:"https://peraturan.bpk.go.id/Details/38851/uu-no-51-tahun-2009",
+      notes:"The amending list was read from the statute itself."}
+  },
+  {
+    id:"perpres-10-2021", ref:"Perpres 10/2021", kind:"perpres", subject:"Investment list",
+    title:"The positive investment list", titleId:"Bidang Usaha Penanaman Modal",
+    since:"2021-03-04", sinceLabel:"4 Mar 2021",
+    summary:"The positive list: priority sectors, small-business sectors, and sectors with conditions.",
+    events:[
+      {date:"4 Mar 2021", what:"Replaced the negative list with a positive list."},
+      {date:"25 May 2021", label:"Perpres 49/2021", what:"Amended Pasal 2, Pasal 6 and the alcohol rows. It does not mention the nickel codes.", amend:true, loc:"Perpres 49/2021, Pasal I angka 1–2"}
+    ],
+    units:[
+      {ref:"Lampiran I No. 107 · KBLI 24202", short:"24202", state:"survived", label:"Condition: technology transfer",
+       text:["Melakukan alih teknologi"],
+       gloss:"Row 107, non-ferrous metal basic industry. The only condition in the column is technology transfer. No equity cap appears.",
+       note:"Lampiran I page 17. The same code is absent from Lampiran II and Lampiran III."},
+      {ref:"KBLI 24202B1 · nickel matte", short:"24202B1", state:"survived", label:"Row 107 condition applies",
+       gloss:"Nickel metal from ore by pyrometallurgy, with the product scope spelled out.", note:"Lampiran I page 34. Its own requirement cell is empty; the technology-transfer condition sits on row 107, which covers this sub-code."},
+      {ref:"KBLI 24202B2 · MHP", short:"24202B2", state:"survived", label:"Row 107 condition applies",
+       gloss:"Nickel metal from ore by hydrometallurgy, the mixed hydroxide precipitate route.", note:"Lampiran I page 35. Its own requirement cell is empty; the row 107 condition covers it."}
+    ],
+    source:{label:"BPK, Perpres 10/2021 and the lampiran archive",
+      url:"https://peraturan.bpk.go.id/Details/161806/perpres-no-10-tahun-2021",
+      notes:"The lampiran ships as a four-file archive; the three lampiran are rotated scans with no text layer, so the rows were read by OCR of rendered pages and checked against column positions."}
+  },
+  {
+    id:"perpres-49-2021", ref:"Perpres 49/2021", kind:"perpres", subject:"Investment list",
+    title:"Amendment to the positive list", titleId:"Perubahan atas Perpres 10/2021",
+    since:"2021-05-25", sinceLabel:"25 May 2021",
+    summary:"A narrow amendment about alcohol, plus a restatement of the open-list rule.",
+    events:[{date:"25 May 2021", what:"Amended Pasal 2, Pasal 6 and the alcohol rows of Perpres 10/2021.", loc:"Pasal I angka 1–2"}],
+    units:[],
+    source:{label:"BPK, Perpres 49/2021", url:"https://peraturan.bpk.go.id/Details/168534/perpres-no-49-tahun-2021",
+      notes:"Checked for any mention of 24202 or nickel: none."}
+  },
+  {
+    id:"bit-1994", ref:"China–Indonesia BIT 1994", kind:"treaty", subject:"Treaty",
+    title:"China–Indonesia bilateral investment treaty", titleId:"Bilateral investment treaty", sinceWord:"Signed",
+    since:"1994-01-01", sinceLabel:"1994",
+    summary:"Terminated in 2015, with a ten-year survival clause that expired in March 2025.",
+    events:[
+      {date:"1994", what:"Bilateral investment treaty between Indonesia and China."},
+      {date:"31 Mar 2015", what:"Termination took effect.", amend:false, mark:"terminated"},
+      {date:"31 Mar 2025", what:"The survival window for pre-termination investments closed.", mark:"expired"}
+    ],
+    units:[
+      {ref:"Survival clause", short:"survival", state:"gone", label:"Expired 31 March 2025",
+       gloss:"A measure taken in 2026 cannot, as a general matter, be brought under this treaty.",
+       note:"Two concordant sources. The termination instrument was not retrieved for this pilot."}
+    ],
+    source:{label:"UNCTAD treaty record (termination date); King & Wood Mallesons, 2 Sep 2026 (survival expiry)",
+      url:"https://investmentpolicy.unctad.org/international-investment-agreements/treaties/bit/913/china---indonesia-bit-1994-",
+      notes:"Secondary sources, not the instrument. Retrieve the termination notification before citing the date in a filing."}
+  },
+  {
+    id:"acfta-iia", ref:"ACFTA Investment Agreement", kind:"treaty", subject:"Treaty",
+    title:"ASEAN–China investment agreement", titleId:"ASEAN–China Investment Agreement",
+    since:"2010-01-01", sinceLabel:"By 2020 · exact date unresolved", sinceWord:"Status",
+    summary:"A potential investor-state route, subject to treaty conditions and jurisdiction.",
+    events:[
+      {date:"15 Aug 2009", what:"Signed. Article 27 provides for entry into force six months later."},
+      {date:"2010", what:"Records disagree on the precise entry-into-force date for Indonesia. The agreement was in force by 2020."}
+    ],
+    units:[
+      {ref:"Art. 7(2)(a)", short:"7", state:"survived", label:"FET means one thing",
+       text:["fair and equitable treatment refers to the obligation of each Party not to deny justice in any legal or administrative proceedings."],
+       gloss:"The quoted clause describes fair and equitable treatment in terms of denial of justice in legal or administrative proceedings. Its application to a particular measure requires further legal analysis.",
+       note:"Quoted from the treaty text."},
+      {ref:"Art. 8", short:"8", state:"survived", label:"Expropriation and compensation",
+       text:["the fair market value of the expropriated investment at the time when expropriation was publicly announced or when expropriation occurred, whichever is earlier"],
+       gloss:"Lawful only for a public purpose, in accordance with domestic law, without discrimination, and with compensation at fair market value.",
+       note:"The word “indirect” does not appear in Article 8 as retrieved. Treat protection against indirect expropriation as an argument to build, not a text to quote."},
+      {ref:"Art. 4", short:"4", state:"survived", label:"Admission is outside it",
+       text:["management, conduct, operation, maintenance, use, sale, liquidation, or other forms of disposal"],
+       gloss:"National treatment covers running an investment, not being let into a sector.",
+       note:"This is the clause's scope list, quoted in part. The full sentence adds the standard of treatment that applies inside it."},
+      {ref:"Art. 14", short:"14", state:"survived", label:"ISDS exists, within limits",
+       gloss:"Article 14(1) addresses qualifying claims alleging a breach of Articles 4, 5 or 7–10 causing loss or damage in relation to management, conduct, operation, sale or disposition. Other conditions apply.",
+       note:"Article 14 was checked in ASEAN’s treaty text. Jurisdiction depends on the facts and the complete provision."}
+    ],
+    source:{label:"ASEAN treaty text",
+      url:"https://asean.org/wp-content/uploads/2021/08/Asean-Document-Series-ADS2009.pdf",
+      notes:"Articles 3 to 8 and Article 14 are recorded from treaty text. The exact date of entry into force for Indonesia remains unresolved."}
+  }
+];
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const TODAY = "2026-11-09";
+const PAST = "2020-03-01";
+
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmt(iso){ const [y,m,d] = (iso||"").split("-").map(Number); return m ? `${d} ${MONTHS[m-1]} ${y}` : String(y||""); }
+
+/* A year alone is an interval, not an invented effective date. */
+function eventTiming(label, date){
+  const value = String(label);
+  const y = value.match(/^(\d{4})$/);
+  if(y){
+    const year = Number(y[1]), selected = Number(date.slice(0,4));
+    return year < selected ? "before" : year > selected ? "after" : "unknown";
+  }
+  const m = value.match(/^(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})$/);
+  if(!m) return "unknown";
+  const mi = MONTHS.findIndex(x => x.toLowerCase() === m[2].toLowerCase());
+  if(mi < 0) return "unknown";
+  const iso = `${m[3]}-${String(mi+1).padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  return iso <= date ? "before" : "after";
+}
+
+/* ============================================================
+   VERDICTS
+   ============================================================ */
+function statusOf(entry, date){
+  const t = date;
+
+  if(entry.id === "bit-1994"){
+    if(t < "2015-03-31") return {tone:"ok", word:"In force", cls:"s-ok", note:"The treaty was in force on this date."};
+    if(t < "2025-03-31") return {tone:"warn", word:"Terminated · survival running", cls:"s-warn",
+      note:"Terminated on 31 March 2015. The signed text continues Articles I–XII for qualifying pre-termination investments until 31 March 2025. Article IX is within that range; its arbitration limb covers only the amount of compensation for expropriation."};
+    return {tone:"bad", word:"Not available", cls:"s-bad",
+      note:"Terminated on 31 March 2015, and the survival clause expired on 31 March 2025. A measure taken after that date cannot, as a general matter, be brought under this treaty."};
+  }
+
+  if(entry.since && t < entry.since)
+    return {tone:"warn", word:"Not yet in force", cls:"s-warn", note:"The curated record indicates this instrument was not yet in force on the selected date; verify its official commencement date."};
+
+  const uncertain = (entry.events || []).filter(e => e.amend && eventTiming(e.date, t) === "unknown");
+  if(uncertain.length) return {tone:"warn", word:"Date unresolved", cls:"s-warn",
+    note:`The index records an amendment in ${uncertain.map(e => e.date).join(", ")} but not its effective day. Check the source before relying on this status.`};
+  const amends = (entry.events || []).filter(e => e.amend && eventTiming(e.date, t) === "before");
+  const last = amends.length ? amends[amends.length - 1] : null;
+  const hasAmends = (entry.events || []).some(e => e.amend);
+
+  if(last) return {tone:"warn", word:"In force · amended", cls:"s-warn",
+    note:`The listed chain records ${last.label} as the last amendment by this date. Check its effective date and the full official amendment history.`};
+
+  return {tone:"ok", word:"In force", cls:"s-ok",
+    note: hasAmends ? `No listed amendment is known to be in effect on this date. Check the official amendment history.` : `The curated record indicates the instrument was in force on this date; check the official source.`};
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = { id:"uu-25-2007", unit:"Pasal 7", asof:TODAY, compare:false, q:"", filter:"all", active:0 };
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+const norm = s => String(s||"").toLowerCase();
+
+/* Precompute a haystack and a unit-level index for each entry. */
+INDEX.forEach(e => {
+  e._unitsHay = (e.units||[]).map(u => ({ u, hay: norm([u.ref, u.short, u.gloss, u.note, (u.text||[]).join(" ")].join(" ")) }));
+  e._hay = norm([e.ref, e.title, e.titleId, e.subject, e.summary,
+    (e.events||[]).map(x => x.label + " " + x.what).join(" "),
+    e._unitsHay.map(x => x.hay).join(" ")].join(" "));
+});
+
+function hasTerm(hay, q){
+  if(!q) return false;
+  if(/[0-9]/.test(q)){
+    const e = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp("(^|[^0-9a-z])" + e + "([^0-9a-z]|$)").test(hay);
+  }
+  return hay.includes(q);
+}
+
+function matchEntry(entry, q){
+  if(!q) return { score:0, unit:null, hit:"" };
+  const qq = norm(q).trim();
+  let score = 0;
+  const ref = norm(entry.ref);
+
+  if(ref === qq) score += 140;
+  else if(ref.includes(qq)) score += 70;
+  if(norm(entry.title).includes(qq)) score += 26;
+  if(norm(entry.titleId).includes(qq)) score += 20;
+  if(norm(entry.subject).includes(qq)) score += 16;
+
+  /* number/year form, e.g. 25/2007 or uu 25 2007 */
+  const m = qq.match(/(\d{1,3})\s*[\/ ]\s*((?:19|20)\d{2})/);
+  if(m && ref.includes(m[1] + "/" + m[2])) score += 90;
+
+  // A combined query such as "UU 25/2007 Pasal 32" must select the
+  // requested provision, not silently fall back to the first provision.
+  const articleMatch = qq.match(/\b(?:pasal|art(?:icle)?\.?)\s*(\d+[a-z]?)/);
+  const rowMatch = qq.match(/\b(?:kbli\s*)?(\d{5}[a-z0-9]*)\b/);
+  const requested = articleMatch ? articleMatch[1] : rowMatch ? rowMatch[1] : null;
+  let unit = requested ? (entry.units || []).find(u => norm(u.short) === requested || norm(u.ref).replace(/\s+/g, "").includes((articleMatch ? "pasal" : "kbli") + requested)) || null : null;
+  if(unit) score += 120;
+  for(const x of entry._unitsHay){
+    const uRef = norm(x.u.ref);
+    if(uRef === qq || uRef.replace(/\s+/g,"") === qq.replace(/\s+/g,"")){ score += 120; unit = unit || x.u; }
+    else if(hasTerm(x.hay, qq)){ score += 34; unit = unit || x.u; }
+  }
+
+  const words = qq.split(/\s+/).filter(w => w.length > 2);
+  for(const w of words) if(entry._hay.includes(w)) score += 4;
+
+  let hit = "";
+  if(unit) hit = unit.ref;
+  else {
+    const x = entry._unitsHay.find(x => x.hay.includes(qq));
+    if(x) hit = x.u.ref;
+  }
+  return { score, unit, hit };
+}
+
+function results(){
+  const q = state.q.trim();
+  const rows = INDEX.map(e => {
+    const mm = matchEntry(e, q);
+    return { e, score: mm.score, unit: mm.unit, hit: mm.hit };
+  });
+  return rows
+    .filter(r => {
+      if(q && r.score <= 0) return false;
+      if(state.filter === "all") return true;
+      const st = statusOf(r.e, state.asof);
+      if(state.filter === "ended")  return st.tone === "bad";
+      if(state.filter === "amended")return st.word.includes("amended");
+      if(state.filter === "clean")  return !st.word.includes("amended") && st.tone === "ok";
+      return true;
+    })
+    .sort((a, b) => q ? b.score - a.score : INDEX.indexOf(a.e) - INDEX.indexOf(b.e));
+}
+
+function shortStatus(st){
+  if(st.tone === "bad") return "ended";
+  if(st.word.includes("amended")) return "amended";
+  if(st.word === "Not yet in force") return "not yet";
+  if(st.word === "Date unresolved") return "check date";
+  if(st.word.startsWith("Terminated")) return "survival";
+  return "in force";
+}
+
+/* ============================================================
+   RENDER — rail
+   ============================================================ */
+function renderRail(){
+  const rows = results();
+  const list = $("#list");
+
+  if(!rows.length){
+    list.innerHTML = state.q
+      ? `<li class="rail-empty">Nothing matches “${esc(state.q)}”.<br>Try a number and a year, for example <b>25/2007</b>.</li>`
+      : `<li class="rail-empty">No instrument has that status on ${fmt(state.asof)}.<br><b>Ended</b> only matches an instrument that is no longer available.</li>`;
+  } else {
+    list.innerHTML = rows.map((r, i) => {
+      const st = statusOf(r.e, state.asof);
+      const sel = r.e.id === state.id;
+      return `<li class="row" role="option" tabindex="0" data-id="${r.e.id}"
+                  aria-selected="${sel}" data-i="${i}">
+        <span class="r-ref">${esc(r.e.ref)}</span>
+        <span class="r-status ${st.cls}">${esc(shortStatus(st))}</span>
+        <span class="r-title">${esc(r.e.title)}</span>
+        ${r.hit && state.q ? `<span class="r-hit">matched <b>${esc(r.hit)}</b></span>` : ""}
+      </li>`;
+    }).join("");
+  }
+
+  const total = INDEX.reduce((n,e) => n + (e.units||[]).length, 0);
+  $("#railfoot").innerHTML = `${rows.length} of ${INDEX.length} shown · press <b style="color:var(--muted)">/</b> to search`;
+}
+
+/* ============================================================
+   RENDER — panel
+   ============================================================ */
+function entryById(id){ return INDEX.find(e => e.id === id) || INDEX[0]; }
+function unitOf(entry, ref){ return (entry.units||[]).find(u => u.ref === ref) || null; }
+function chipLabel(u){
+  if(!u) return "";
+  if(u.ref.indexOf("Pasal ") === 0) return u.ref;
+  return u.short || u.ref;
+}
+
+function renderPanel(){
+  const e = entryById(state.id);
+  const panel = $("#panel");
+
+  if(!e){ panel.innerHTML = ""; return; }
+
+  const st = statusOf(e, state.asof);
+  const stPast = statusOf(e, PAST);
+  const stCurrent = statusOf(e, TODAY);
+
+  const requested = matchQ();
+  // Do not display an unrelated provision when an explicit citation is absent.
+  const unit = unitOf(e, state.unit) || ((!requested.article && !requested.row) ? (e.units||[])[0] : null) || null;
+  const last = (e.events||[]).filter(x => x.amend && eventTiming(x.date, state.asof) === "before").slice(-1)[0];
+
+  const head = state.compare ? `
+    <div class="eyebrow"><span class="verdict ${st.cls}">${esc(e.ref)}</span>
+      <span class="asof">two dates</span></div>
+    <h1 class="p-title">${esc(e.title)}</h1>
+    <div class="p-sub">${esc(e.titleId)}</div>` : `
+    <div class="eyebrow"><span class="verdict ${st.cls}">${esc(st.word)}</span>
+      <span class="asof">on ${fmt(state.asof)}</span></div>
+    <h1 class="p-title">${esc(e.title)}</h1>
+    <div class="p-sub">${esc(e.ref)} · ${esc(e.titleId)}</div>`;
+
+  const controls = `
+    <div class="controls">
+      ${state.compare ? "" : `
+      <div class="seg" role="group" aria-label="As-of date">
+        <button data-asof="${PAST}" aria-pressed="${state.asof===PAST}">1 Mar 2020</button>
+        <button data-asof="${TODAY}" aria-pressed="${state.asof===TODAY}">9 Nov 2026</button>
+      </div>
+`}
+      <button class="ghost" id="cmp" aria-pressed="${state.compare}">Compare 1 Mar 2020 / 9 Nov 2026</button>
+      ${state.compare ? "" : `<button class="ghost" id="copy">Copy citation</button>`}
+    </div>`;
+
+  const compareBlock = state.compare ? `
+    <div class="compare">
+      <div>
+        <span class="c-date">${fmt(PAST)}</span>
+        <span class="c-verdict ${stPast.cls}">${esc(stPast.word)}</span>
+        <p>${esc(stPast.note)}</p>
+      </div>
+      <div>
+        <span class="c-date">${fmt(TODAY)}</span>
+        <span class="c-verdict ${stCurrent.cls}">${esc(stCurrent.word)}</span>
+        <p>${esc(stCurrent.note)}</p>
+      </div>
+    </div>` : "";
+
+  const ended  = st.tone === "bad" || st.word.indexOf("Terminated") === 0;
+  const facts = state.compare ? "" : `
+    <dl class="facts">
+      <div class="fact"><dt>${ended ? "Terminated" : (st.word === "Not yet in force" ? "Not yet in force" : (e.sinceWord || "In force since"))}</dt><dd class="num">${esc(ended ? "31 Mar 2015" : e.sinceLabel)}</dd></div>
+      <div class="fact"><dt>${st.tone === "bad" ? "Survival expired" : (ended ? "Survival runs to" : "Last change")}</dt><dd>${st.tone === "bad" ? "31 Mar 2025" : (ended ? "31 Mar 2025" : (last ? `<span class="v">${esc(last.label)}</span><span class="d">${esc(last.date)}</span>` : "None known"))}</dd></div>
+      <div class="fact"><dt>Provisions here</dt><dd class="num">${(e.units||[]).length}</dd></div>
+      <div class="fact"><dt>Amendments</dt><dd class="num">${(e.events||[]).filter(x => x.amend && eventTiming(x.date, state.asof) === "before").length}</dd></div>
+    </dl>`;
+
+  const canShowProvision = !state.compare && state.asof === TODAY && st.word !== "Not yet in force" && st.tone !== "bad";
+  const provision = unit && !canShowProvision ? `
+    <h2 class="part">Provision</h2>
+    <p class="gloss">The index does not reconstruct article text for historical dates or reproduce excerpts from an instrument that had ended. Select 9 Nov 2026 to view a recorded excerpt where available. Consult the linked source for historical wording.</p>
+  ` : unit ? `
+    <h2 class="part">Provision recorded 9 Nov 2026</h2>
+    <div class="p-ref"><span class="k">${esc(unit.ref)}</span>
+      <span class="tag ${unit.state}">${esc(unit.label)}</span></div>
+    ${(unit.text && unit.text.length) ? `<blockquote>${unit.text.map(t => `<p>${esc(t)}</p>`).join("")}</blockquote>` : ""}
+    <p class="gloss">${esc(unit.gloss)}</p>
+    ${unit.note ? `<p class="note">${esc(unit.note)}</p>` : ""}
+  ` : (state.q && (matchQ().article || matchQ().row) ? `
+    <h2 class="part">Provision</h2>
+    <p class="gloss"><b>${esc(matchQ().article ? "Pasal " + matchQ().article : "KBLI " + matchQ().row)}</b> is not recorded in this index. It may exist and be unquoted, or it may not exist. The chain below shows what changed in the statute.</p>
+  ` : "");
+
+  const chain = `
+    <h2 class="part">Recorded chain · includes later events</h2>
+    <table class="chain">
+      <caption class="sr">Amendment chain for ${esc(e.ref)}</caption>
+      <thead><tr><th scope="col">Date</th><th scope="col">Change</th></tr></thead>
+      <tbody>
+        ${(e.events||[]).map(ev => `
+          <tr class="${ev.amend ? "amend" : ""}">
+            <td class="d num">${esc(ev.date)}</td>
+            <td><p>${ev.label ? `<b class="inst">${esc(ev.label)}</b> · ` : ""}${esc(ev.what)}</p>${ev.loc ? `<span class="loc">${esc(ev.loc)}</span>` : ""}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>`;
+
+  const others = (e.units||[]).filter(u => !unit || u.ref !== unit.ref);
+  const chips = others.length ? `
+    <h2 class="part">Other provisions</h2>
+    <div class="chips">
+      ${others.map(u => `<button data-unit="${esc(u.ref)}">${esc(chipLabel(u))}</button>`).join("")}
+    </div>` : "";
+
+  const prov = `
+    <div class="prov">
+      <div><b>Source</b> · <a href="${e.source.url}" target="_blank" rel="noopener">${esc(e.source.label)}</a></div>
+      <div class="row2"><b>Retrieved</b> · 9 November 2026</div>
+      <div class="row2"><b>Limits</b> · ${esc(e.source.notes)}</div>
+    </div>`;
+
+  panel.innerHTML = `<div class="p-head">${head}</div>${controls}${compareBlock}${facts}${provision}${chain}${chips}${prov}`;
+  bindPanel(e);
+}
+
+/* Keep the last query parse for the "not recorded" branch. */
+function matchQ(){
+  const q = norm(state.q).trim();
+  const art = q.match(/pasal\s*(\d+[a-z]?)/) || q.match(/\bart(?:icle)?\.?\s*(\d+[a-z]?)/);
+  const row = q.match(/\b(\d{5}[a-z0-9]*)\b/);
+  return { article: art ? art[1].toUpperCase() : null, row: row ? row[0].toUpperCase() : null };
+}
+
+function bindPanel(e){
+  $$("[data-asof]", $("#panel")).forEach(b => b.addEventListener("click", () => {
+    state.asof = b.getAttribute("data-asof");
+    state.compare = false;
+    renderAll();
+  }));
+
+  const cmp = $("#cmp");
+  if(cmp) cmp.addEventListener("click", () => { state.compare = !state.compare; renderAll(); });
+
+  const cp = $("#copy");
+  if(cp) cp.addEventListener("click", () => copyCitation(e));
+
+  $$("[data-unit]", $("#panel")).forEach(b => b.addEventListener("click", () => {
+    state.unit = b.getAttribute("data-unit");
+    renderAll();
+    const head = document.querySelector(".part");
+    if(head) head.scrollIntoView({block:"start", behavior:"smooth"});
+  }));
+}
+
+function copyCitation(e){
+  const unit = unitOf(e, state.unit);
+  const st = statusOf(e, state.asof);
+  const text = `${e.ref}${unit ? ", " + unit.ref : ""} — ${st.word.toLowerCase()} on ${fmt(state.asof)}.`;
+  const done = () => {
+    const b = $("#copy");
+    if(!b) return;
+    const old = b.textContent;
+    b.textContent = "Copied";
+    setTimeout(() => { b.textContent = old; }, 1200);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else fallback();
+
+  function fallback(){
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch(_) {}
+    document.body.removeChild(ta);
+  }
+}
+
+/* ============================================================
+   RENDER — all
+   ============================================================ */
+function renderAll(){
+  renderRail();
+  renderPanel();
+  $("#counts").textContent = `${INDEX.length} instruments · ${INDEX.reduce((n,e)=>n+(e.units||[]).length,0)} provisions`;
+  const url = `#${state.id}/${encodeURIComponent(state.unit||"")}?asof=${state.asof}${state.compare?"&cmp=1":""}`;
+  history.replaceState(null, "", url);
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+$("#q").addEventListener("input", ev => {
+  state.q = ev.target.value;
+  state.active = 0;
+  renderRail();
+  if(!state.q){ renderAll(); return; }
+  const rows = results();
+  if(rows.length){ openRow(rows[0], false); }
+  else { $("#panel").innerHTML = '<p class="gloss" role="status">No matching instrument. Try another citation or search term.</p>'; }
+});
+
+$("#q").addEventListener("keydown", ev => {
+  const rows = results();
+  if(ev.key === "ArrowDown" || ev.key === "ArrowUp"){
+    ev.preventDefault();
+    if(!rows.length) return;
+    const dir = ev.key === "ArrowDown" ? 1 : -1;
+    const cur = Math.max(0, rows.findIndex(r => r.e.id === state.id));
+    const next = rows[(cur + dir + rows.length) % rows.length];
+    openRow(next, false);
+  }
+  if(ev.key === "Enter"){ ev.preventDefault(); $("#q").blur(); }
+  if(ev.key === "Escape"){ ev.target.value = ""; state.q = ""; renderRail(); }
+});
+
+$("#list").addEventListener("click", ev => {
+  const li = ev.target.closest(".row");
+  if(!li) return;
+  const rows = results();
+  const r = rows.find(x => x.e.id === li.getAttribute("data-id"));
+  if(r) openRow(r, true);
+});
+
+$("#list").addEventListener("keydown", ev => {
+  if(ev.key !== "Enter" && ev.key !== " ") return;
+  const li = ev.target.closest(".row");
+  if(!li) return;
+  ev.preventDefault();
+  const rows = results();
+  const r = rows.find(x => x.e.id === li.getAttribute("data-id"));
+  if(r) openRow(r, true);
+});
+
+$("#filters").addEventListener("click", ev => {
+  const b = ev.target.closest("button[data-f]");
+  if(!b) return;
+  state.filter = b.getAttribute("data-f");
+  $$("#filters button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  renderRail();
+});
+
+document.addEventListener("keydown", ev => {
+  if(ev.key === "/" && document.activeElement.tagName !== "INPUT"){
+    ev.preventDefault(); $("#q").focus(); $("#q").select();
+  }
+});
+
+function openRow(r, focusPanel){
+  state.id = r.e.id;
+  const requested = matchQ();
+  state.unit = r.unit ? r.unit.ref : (requested.article || requested.row ? null : ((r.e.units||[])[0] || {}).ref || null);
+  state.compare = false;
+  renderAll();
+  if(focusPanel) $("#panel").scrollIntoView({block:"start", behavior:"smooth"});
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+(function boot(){
+  const h = decodeURIComponent(location.hash.replace(/^#/, ""));
+  if(h){
+    const m = h.match(/^([\w-]+)\/([^?]*)/);
+    const qs = h.split("?")[1] || "";
+    if(m){
+      const e = INDEX.find(x => x.id === m[1]);
+      if(e){
+        state.id = e.id;
+        state.unit = m[2] ? decodeURIComponent(m[2]) : ((e.units||[])[0] || {}).ref || null;
+      }
+    }
+    const asof = (qs.match(/asof=([\d-]+)/) || [])[1];
+    if(asof === PAST || asof === TODAY) state.asof = asof;
+    state.compare = /(^|&)cmp=1/.test(qs);
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
