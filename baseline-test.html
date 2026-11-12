@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Stale Law — AutoClaw baseline record</title>
+<style>
+@page { size: A4; margin: 18mm 16mm; }
+html,body { margin:0; padding:0; }
+body { font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 10.2pt; line-height: 1.45; color:#1a1712; }
+h1 { font-size: 20pt; line-height:1.12; margin: 0 0 8pt; letter-spacing:-.01em; }
+h2 { font-size: 13pt; margin: 18pt 0 6pt; border-bottom: .5pt solid #b9b0a0; padding-bottom: 3pt; page-break-after: avoid; }
+h3 { font-size: 11pt; margin: 13pt 0 4pt; page-break-after: avoid; }
+h4 { font-size: 10pt; margin: 10pt 0 3pt; }
+p { margin: 0 0 6pt; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 7pt 16pt; padding: 0; }
+li { margin: 0 0 3.5pt; }
+blockquote { margin: 6pt 0 8pt 0; padding: 5pt 9pt; border-left: 2pt solid #8c2f1e; background:#f6f3ec; font-size: 9.6pt; }
+blockquote p { margin: 0 0 3pt; }
+table { width: 100%; border-collapse: collapse; font-size: 8.6pt; margin: 6pt 0 9pt; }
+th, td { border: .5pt solid #c9c0ae; padding: 3pt 4pt; text-align: left; vertical-align: top; }
+th { background: #efeae0; font-weight: 600; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 8.8pt; background: #f0ece3; padding: 0 2pt; }
+a { color: #8c2f1e; text-decoration: none; word-break: break-word; }
+hr { border: 0; border-top: .5pt solid #c9c0ae; margin: 10pt 0; }
+strong { font-weight: 600; }
+</style><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media screen{html{background:#f7f6ef}body{max-width:780px;margin:0 auto;padding:40px 24px 80px;font-size:17px;line-height:1.65;color:#1c3028}h1{font-size:34px}h2{font-size:22px;margin-top:38px}h3{font-size:18px;margin-top:26px}p,li{margin-bottom:12px}blockquote{font-size:15.5px;padding:12px 16px}table{display:block;overflow-x:auto;font-size:14px}th,td{padding:8px 10px}code{font-size:14px}a{color:#1f4939;text-decoration:underline;text-underline-offset:3px}.back{font:13px -apple-system,sans-serif;margin:0 0 28px}}@media print{.back{display:none}}</style></head><body><p class="back"><a href="index.html">← Stale Law</a></p>
+<h1>AutoClaw baseline — one observed answer</h1>
+<p><strong>Run:</strong> 10 November 2026, approximately 16:39–16:40, Jakarta time.  </p>
+<p><strong>Environment:</strong> new AutoClaw task; Legal work scenario; Global (Multi-jurisdiction); GLM-5.3-Flash; Default project. The task was new, but the account and project may have persistent memory or context, so this is not evidence of a fully isolated model environment.  </p>
+<p><strong>Prompt:</strong> “Which investment treaty protects a Chinese investor in Indonesia against expropriation in 2026? Answer in one paragraph.”</p>
+<p>The answer described the 1994 China–Indonesia BIT as the principal current treaty and said that the RCEP investment chapter includes investor–state dispute settlement. It also named the ASEAN–China Investment Agreement. These are observations of one answer; they do not establish a failure rate.</p>
+<h2>Source checks</h2>
+<ul>
+<li><a href="https://investmentpolicy.unctad.org/international-investment-agreements/treaties/bit/913/china---indonesia-bit-1994-">UNCTAD’s treaty record</a> and the <a href="https://www.oecd.org/en/publications/oecd-investment-policy-reviews-indonesia-2020_b56512da-en/full-report/component-7.html">OECD’s Indonesia investment review</a> report termination on 31 March 2015. The <a href="https://investmentpolicy.unctad.org/international-investment-agreements/treaty-files/743/download">signed BIT text</a>, Article XIII(2), continues Articles I–XII for qualifying investments for ten years (corrected 13 November 2026; MOFCOM's <a href="https://tfs.mofcom.gov.cn/sbtzbhxd/yz/art/2010/art_b232f4c56c9e4641a6966cad2d920d38.html">English transcription</a> reads "I to VI"). The termination notice itself has not been retrieved. Article IX is inside that range; its arbitration limb covers only the amount of compensation for expropriation.</li>
+<li>The <a href="https://www.dfat.gov.au/trade/agreements/in-force/rcep/rcep-text">RCEP legal text</a> does not itself provide an investor–state arbitration mechanism; Article 10.18 provides for discussion of such settlement. The <a href="https://www.aph.gov.au/Parliamentary_Business/Committees/Joint/Treaties/RCEP/Report_196/section?id=committees%2Freportjnt%2F024720%2F77359">Australian Parliament’s treaty analysis</a> describes the distinction from state-to-state settlement. Verify whether any subsequent agreed amendment changed the position before relying on it.</li>
+<li><a href="https://asean.org/wp-content/uploads/2021/08/Asean-Document-Series-ADS2009.pdf">ASEAN’s investment-agreement text</a>, Articles 1, 3, 8 and 14, shows that coverage and jurisdiction depend on the claimant and the facts. Naming the agreement is not enough to establish a claim.</li>
+</ul>
+<h2>Limits</h2>
+<p>This is a single, short question without a stated investment date, ownership structure or dispute facts. The answer was observed in the AutoClaw UI; it was not an independent assessment of every statement in that response. A prompted follow-up in the same task is not an independent second baseline. The date-paired probe pack has not been run and must not be reported as a score. No conclusion about model-wide performance follows from one example.</p>
+<h2>Prompted follow-up</h2>
+<p>In the same task, a follow-up asked AutoClaw to reassess against official status records and treaty text, specifically checking BIT termination and survival, the ASEAN–China agreement and RCEP investor–state settlement, and to distinguish substantive protection from jurisdiction. It ran for approximately five minutes with repeated failed retrievals and was stopped without a completed answer. It is not an observed improvement and must not be presented as one.</p>
+<h2>A later observation, 12–13 November 2026</h2>
+<p>Two further AutoClaw Legal tasks asked a dated version of the question (as of 1 March 2020, naming instruments and articles). Both ran for several minutes of web research and were stopped by hand before a final answer, so neither is scored. One left a research file stating that the survival clause in Article XIII(2) covers Articles I–XII, where this pilot had said I–VI. That was checked against the signed text held by UNCTAD, Jus Mundi and the official Chinese text, all of which read I–XII; the pilot was corrected on 13 November. The rest of that research file was not checked.</p>
+</body></html>
