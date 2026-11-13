@@ -2,7 +2,7 @@
 
 A constructed legal research pilot on stale citations: law that has moved on while the old citation keeps circulating.
 
-**Live site:** https://faizkrisnadi.github.io/stale-law/
+**Live site:** https://faizkrisnadi.com/stale-law/
 
 ## What is here
 
