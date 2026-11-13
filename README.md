@@ -34,4 +34,4 @@ A constructed legal research pilot on stale citations: law that has moved on whi
 
 Built for the Built with AutoClaw challenge, Round 3, Legal Practice track.
 
-© 2026 Muhammad Faiz Krisnadi. All rights reserved.
+© 2026 Faiz Krisnadi. All rights reserved.
